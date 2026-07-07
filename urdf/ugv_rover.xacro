@@ -1,0 +1,366 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot name="ugv_rover" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:property name="steerX"        value="0.34672"/>
+  <xacro:property name="steerY"        value="0.2949"/>
+  <xacro:property name="steerZ"        value="0.041107"/>
+  <xacro:property name="wheelX"        value="0.045"/>
+  <xacro:property name="wheelY"        value="0.0782"/>
+
+  <xacro:property name="steerLimitLo"  value="-1.5708"/>
+  <xacro:property name="steerLimitHi"  value="1.5708"/>
+  <xacro:property name="steerEffort"   value="20.0"/>
+  <xacro:property name="steerVel"      value="8.0"/>
+  <xacro:property name="steerDamping"  value="0.5"/>
+  <xacro:property name="steerFriction" value="0.1"/>
+
+  <xacro:property name="wheelDamping"  value="0.01"/>
+  <xacro:property name="wheelFriction" value="0.1"/>
+  <xacro:property name="wheelMu"       value="1.2"/>
+  <xacro:property name="wheelKp"       value="1e5"/>
+  <xacro:property name="wheelKd"       value="10.0"/>
+  <xacro:property name="wheelMinDepth" value="0.001"/>
+  <xacro:property name="wheelMaxVel"   value="50.0"/>
+
+  <material name="grey">      <color rgba="0.75 0.75 0.75 1"/></material>
+  <material name="greyLight"> <color rgba="0.87 0.91 1.0  1"/></material>
+  <material name="wheel">     <color rgba="0.79 0.82 0.93 1"/></material>
+  <material name="black">     <color rgba="0.1  0.1  0.1  1"/></material>
+  <material name="blue">      <color rgba="0.0  0.5  1.0  1"/></material>
+
+  <xacro:macro name="wheelContact" params="link">
+    <gazebo reference="${link}">
+      <collision>
+        <surface>
+          <friction>
+            <ode>
+              <mu>${wheelMu}</mu>
+              <mu2>${wheelMu}</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>${wheelKp}</kp>
+              <kd>${wheelKd}</kd>
+              <min_depth>${wheelMinDepth}</min_depth>
+              <max_vel>${wheelMaxVel}</max_vel>
+            </ode>
+          </contact>
+        </surface>
+      </collision>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:macro name="controlPosition" params="joint">
+    <joint name="${joint}">
+      <command_interface name="position">
+        <param name="min">${steerLimitLo}</param>
+        <param name="max">${steerLimitHi}</param>
+      </command_interface>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:macro name="controlVelocity" params="joint">
+    <joint name="${joint}">
+      <command_interface name="velocity">
+        <param name="min">-50.0</param>
+        <param name="max">50.0</param>
+      </command_interface>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:macro name="steeringModule" params="num px py pz mat">
+    <link name="steering${num}_link">
+      <inertial>
+        <xacro:if value="${num == 1}">
+          <origin xyz="0.04499235 -0.00843975 -0.14265265" rpy="0 0 0"/>
+          <mass value="1.1397457343073"/>
+          <inertia ixx="0.00203777" ixy="2.37295E-07"   ixz="-7.21921E-11"
+                   iyy="0.00344925" iyz="-5.78848E-05"  izz="0.00178775"/>
+        </xacro:if>
+        <xacro:if value="${num == 2}">
+          <origin xyz="-0.04499235 -0.00844459 -0.14265972" rpy="0 0 0"/>
+          <mass value="1.13974573497961"/>
+          <inertia ixx="0.00203777" ixy="-2.37969E-07" ixz="1.09808E-09"
+                   iyy="0.00344925" iyz="-5.77944E-05" izz="0.00178775"/>
+        </xacro:if>
+        <xacro:if value="${num == 3}">
+          <origin xyz="0.04499235 0.00844459 -0.14265972" rpy="0 0 0"/>
+          <mass value="1.13974573576117"/>
+          <inertia ixx="0.00203777" ixy="-2.37969E-07" ixz="-1.09779E-09"
+                   iyy="0.00344925" iyz="5.77944E-05"  izz="0.00178775"/>
+        </xacro:if>
+        <xacro:if value="${num == 4}">
+          <origin xyz="-0.04499235 0.00843975 -0.14265265" rpy="0 0 0"/>
+          <mass value="1.13974573582734"/>
+          <inertia ixx="0.00203777" ixy="2.37295E-07"  ixz="7.22961E-11"
+                   iyy="0.00344925" iyz="5.78848E-05"  izz="0.00178775"/>
+        </xacro:if>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry><mesh filename="package://MPPI_Ackerman/meshes/steering${num}_Link.STL"/></geometry>
+        <material name="${mat}"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry><mesh filename="package://MPPI_Ackerman/meshes/steering${num}_Link.STL"/></geometry>
+      </collision>
+    </link>
+
+    <joint name="steering${num}_joint" type="revolute">
+      <origin xyz="${px} ${py} ${pz}" rpy="0 0 0"/>
+      <parent link="base_link"/>
+      <child link="steering${num}_link"/>
+      <axis xyz="0 0 1"/>
+      <limit lower="${steerLimitLo}" upper="${steerLimitHi}"
+             effort="${steerEffort}" velocity="${steerVel}"/>
+      <dynamics damping="${steerDamping}" friction="${steerFriction}"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:macro name="wheelModule" params="num parent ox oy oz">
+    <link name="wheel${num}_link">
+      <inertial>
+        <xacro:if value="${num == 1}">
+          <origin xyz="7.35528E-06 0.08038484 6.50849E-05" rpy="0 0 0"/>
+          <mass value="0.79712435736063"/>
+          <inertia ixx="0.00167164" ixy="1.92378E-07"  ixz="4.53770E-10"
+                   iyy="0.00309190" iyz="-2.93109E-08" izz="0.00167169"/>
+        </xacro:if>
+        <xacro:if value="${num == 2}">
+          <origin xyz="-7.35528E-06 0.08038484 5.41913E-05" rpy="0 0 0"/>
+          <mass value="0.797124358032935"/>
+          <inertia ixx="0.00167164" ixy="-1.92378E-07" ixz="4.53951E-10"
+                   iyy="0.00309190" iyz="2.93105E-08"  izz="0.00167169"/>
+        </xacro:if>
+        <xacro:if value="${num == 3}">
+          <origin xyz="7.36648E-06 -0.08038484 5.34124E-05" rpy="0 0 0"/>
+          <mass value="0.797124358814564"/>
+          <inertia ixx="0.00167164" ixy="-1.92576E-07" ixz="-4.53656E-10"
+                   iyy="0.00309190" iyz="-2.93259E-08" izz="0.00167169"/>
+        </xacro:if>
+        <xacro:if value="${num == 4}">
+          <origin xyz="-7.35529E-06 -0.08038484 6.27243E-05" rpy="0 0 0"/>
+          <mass value="0.797124358880693"/>
+          <inertia ixx="0.00167164" ixy="1.92378E-07"  ixz="-4.53666E-10"
+                   iyy="0.00309190" iyz="2.93110E-08"  izz="0.00167169"/>
+        </xacro:if>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry><mesh filename="package://MPPI_Ackerman/meshes/wheel${num}_Link.STL"/></geometry>
+        <material name="wheel"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry><mesh filename="package://MPPI_Ackerman/meshes/wheel${num}_Link.STL"/></geometry>
+      </collision>
+    </link>
+
+    <joint name="wheel${num}_joint" type="continuous">
+      <origin xyz="${ox} ${oy} ${oz}" rpy="0 0 0"/>
+      <parent link="${parent}"/>
+      <child link="wheel${num}_link"/>
+      <axis xyz="0 1 0"/>
+      <dynamics damping="${wheelDamping}" friction="${wheelFriction}"/>
+    </joint>
+
+    <xacro:wheelContact link="wheel${num}_link"/>
+  </xacro:macro>
+
+  <link name="base_footprint"/>
+
+  <joint name="base_footprint_joint" type="fixed">
+    <origin xyz="${steerX} 0 0" rpy="0 0 0"/>
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+  </joint>
+
+  <link name="base_link">
+    <inertial>
+      <origin xyz="0.00651284248495909 -1.49546784478094E-06 0.108010089457282" rpy="0 0 0"/>
+      <mass value="17.965613818979"/>
+      <inertia ixx="0.09286962" ixy="2.14117E-07"  ixz="0.00218183"
+               iyy="0.07187177" iyz="-1.90279E-08" izz="0.13209210"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="package://MPPI_Ackerman/meshes/base_link.STL"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="MPPI_Ackerman/meshes/base_link.STL"/></geometry>
+    </collision>
+  </link>
+
+  <xacro:steeringModule num="1" px="${steerX}"  py="${steerY}"  pz="${steerZ}" mat="grey"/>
+  <xacro:steeringModule num="2" px="-${steerX}" py="${steerY}"  pz="${steerZ}" mat="grey"/>
+  <xacro:steeringModule num="3" px="${steerX}"  py="-${steerY}" pz="${steerZ}" mat="greyLight"/>
+  <xacro:steeringModule num="4" px="-${steerX}" py="-${steerY}" pz="${steerZ}" mat="greyLight"/>
+
+  <xacro:wheelModule num="1" parent="steering1_link" ox="${wheelX}"  oy="-${wheelY}" oz="-0.15378450"/>
+  <xacro:wheelModule num="2" parent="steering2_link" ox="-${wheelX}" oy="-${wheelY}" oz="-0.15378371"/>
+  <xacro:wheelModule num="3" parent="steering3_link" ox="${wheelX}"  oy="${wheelY}"  oz="-0.15378293"/>
+  <xacro:wheelModule num="4" parent="steering4_link" ox="-${wheelX}" oy="${wheelY}"  oz="-0.15378214"/>
+
+  <!-- LiDAR -->
+  <link name="lidar_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.1"/>
+      <inertia ixx="1e-06" ixy="0" ixz="0" iyy="1e-06" iyz="0" izz="1e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.05" length="0.05"/></geometry>
+      <material name="black"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.05" length="0.05"/></geometry>
+    </collision>
+  </link>
+
+  <joint name="lidar_joint" type="fixed">
+    <origin xyz="0 0 0.4" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="lidar_link"/>
+  </joint>
+
+  <gazebo reference="lidar_link">
+    <sensor name="lidar_sensor" type="gpu_lidar">
+      <always_on>1</always_on>
+      <update_rate>15</update_rate>
+      <visualize>true</visualize>
+      <topic>/scan</topic>
+      <gz_frame_id>lidar_link</gz_frame_id>
+      <ros>
+        <remapping>~/out:=/scan</remapping>
+      </ros>
+      <lidar>
+        <scan>
+          <horizontal>
+            <samples>720</samples>
+            <resolution>1</resolution>
+            <min_angle>-3.14159265</min_angle>
+            <max_angle>3.14159265</max_angle>
+          </horizontal>
+          <vertical>
+            <samples>1</samples>
+            <min_angle>0</min_angle>
+            <max_angle>0</max_angle>
+          </vertical>
+        </scan>
+        <range>
+          <min>0.15</min>
+          <max>30.0</max>
+          <resolution>0.01</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.01</stddev>
+        </noise>
+      </lidar>
+    </sensor>
+  </gazebo>
+
+  <!-- IMU -->
+  <link name="imu_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.05"/>
+      <inertia ixx="1e-06" ixy="0" ixz="0" iyy="1e-06" iyz="0" izz="1e-06"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.05 0.05 0.02"/></geometry>
+      <material name="blue"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.05 0.05 0.02"/></geometry>
+    </collision>
+  </link>
+
+  <joint name="imu_joint" type="fixed">
+    <origin xyz="0 0 0.1" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="imu_link"/>
+  </joint>
+
+  <gazebo reference="imu_link">
+    <sensor name="imu_sensor" type="imu">
+      <always_on>1</always_on>
+      <update_rate>100</update_rate>
+      <topic>/imu</topic>
+      <gz_frame_id>imu_link</gz_frame_id>
+      <ros>
+        <remapping>~/out:=/imu</remapping>
+      </ros>
+      <imu>
+        <angular_velocity>
+          <x><noise type="gaussian"><mean>0</mean><stddev>0.009</stddev></noise></x>
+          <y><noise type="gaussian"><mean>0</mean><stddev>0.009</stddev></noise></y>
+          <z><noise type="gaussian"><mean>0</mean><stddev>0.009</stddev></noise></z>
+        </angular_velocity>
+        <linear_acceleration>
+          <x><noise type="gaussian"><mean>0</mean><stddev>0.1</stddev></noise></x>
+          <y><noise type="gaussian"><mean>0</mean><stddev>0.1</stddev></noise></y>
+          <z><noise type="gaussian"><mean>0</mean><stddev>0.1</stddev></noise></z>
+        </linear_acceleration>
+      </imu>
+    </sensor>
+  </gazebo>
+
+  <ros2_control name="MPPI_Ackerman_hardware" type="system">
+    <hardware>
+      <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+    </hardware>
+    <xacro:controlPosition joint="steering1_joint"/>
+    <xacro:controlPosition joint="steering2_joint"/>
+    <xacro:controlPosition joint="steering3_joint"/>
+    <xacro:controlPosition joint="steering4_joint"/>
+    <xacro:controlVelocity joint="wheel1_joint"/>
+    <xacro:controlVelocity joint="wheel2_joint"/>
+    <xacro:controlVelocity joint="wheel3_joint"/>
+    <xacro:controlVelocity joint="wheel4_joint"/>
+  </ros2_control>
+
+  <gazebo>
+    <plugin filename="gz_ros2_control-system"
+            name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+      <parameters>$(find MPPI_Ackerman)/config/ros2_controllers.yaml</parameters>
+      <ros>
+        <namespace>/</namespace>
+      </ros>
+    </plugin>
+  </gazebo>
+
+  <gazebo>
+    <plugin filename="gz-sim-odometry-publisher-system"
+            name="gz::sim::systems::OdometryPublisher">
+        <odom_frame>odom</odom_frame>
+        <robot_base_frame>base_link</robot_base_frame>
+        <odom_topic>/odom</odom_topic>
+        <odom_publish_frequency>50</odom_publish_frequency>
+        <gaussian_noise>0.01</gaussian_noise>
+        <publish_tf>false</publish_tf>
+    </plugin>
+  </gazebo>
+
+  <link name="rear_axle_link"/>
+
+  <joint name="rear_axle_joint" type="fixed">
+    <origin xyz="-${steerX} 0 0" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="rear_axle_link"/>
+  </joint>
+
+</robot>

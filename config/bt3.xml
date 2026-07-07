@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="EndMission">
+    <Sequence>
+      <stop_rover/>
+      <set_autonomous_light mode="{mode}"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="GpsNav">
+    <Fallback>
+      <waypoint_reached target_lat="{waypoint_lat}"
+                        target_lon="{waypoint_lon}"
+                        tolerance="1.5"/>
+      <ForceFailure>
+        <Timeout msec="480000">
+          <Fallback>
+            <gps_nav_action lat="{waypoint_lat}"
+                            lon="{waypoint_lon}"
+                            tolerance="1.5"/>
+            <gpsNav_recovery_action/>
+          </Fallback>
+        </Timeout>
+      </ForceFailure>
+    </Fallback>
+  </BehaviorTree>
+
+  <BehaviorTree ID="ImgDetection">
+    <Sequence>
+      <stop_rover/>
+      <ForceSuccess>
+        <Timeout msec="60000">
+          <Fallback>
+            <Sequence>
+              <img_search_action timeout_sec="60"
+                                 img_found="{img_found}"/>
+              <activate_pointing_action duration_sec="3"/>
+            </Sequence>
+            <imgDetection_recovery_action/>
+          </Fallback>
+        </Timeout>
+      </ForceSuccess>
+      <gps_nav_action lat="{waypoint_lat}"
+                      lon="{waypoint_lon}"
+                      tolerance="1.5"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="InitMission">
+    <Sequence>
+      <set_autonomous_light mode="{mode}"/>
+      <record_current_state_action/>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="LaneFollower">
+    <ForceSuccess>
+      <Fallback>
+        <obstacle_endPoint_detected phase_id="{phase_id}"/>
+        <ForceFailure>
+          <Timeout msec="40000">
+            <Fallback>
+              <lane_follow_action phase_id="{phase_id}"/>
+              <lane_follower_recovery_action/>
+            </Fallback>
+          </Timeout>
+        </ForceFailure>
+      </Fallback>
+    </ForceSuccess>
+  </BehaviorTree>
+
+  <BehaviorTree ID="MppiPlanning">
+    <ReactiveSequence>
+      <Inverter>
+        <waypoint_reached target_lat="{waypoint_lat}"
+                          target_lon="{waypoint_lon}"
+                          tolerance="1.5"/>
+      </Inverter>
+      <Fallback>
+        <Timeout msec="40000">
+          <mppi_planning_action target_lat="{waypoint_lat}"
+                                target_lon="{waypoint_lon}"/>
+        </Timeout>
+        <mppi_recovery_action/>
+      </Fallback>
+    </ReactiveSequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="main_bt">
+    <Timeout msec="480000">
+      <Sequence>
+        <SubTree ID="InitMission"
+                 _autoremap="false"/>
+        <SubTree ID="LaneFollower"
+                 phase_id="1"
+                 _autoremap="false"/>
+        <SubTree ID="MppiPlanning"
+                 waypoint_lat="{wp1_lat}"
+                 waypoint_lon="{wp1_lon}"
+                 _autoremap="false"/>
+        <SubTree ID="GpsNav"
+                 waypoint_lat="{wp2_lat}"
+                 waypoint_lon="{wp2_lon}"
+                 _autoremap="false"/>
+        <SubTree ID="ImgDetection"
+                 img_toBe_detected="{given_img}"
+                 _autoremap="false"/>
+        <SubTree ID="GpsNav"
+                 waypoint_lat="{wp3_lat}"
+                 waypoint_lon="{wp3_lon}"
+                 _autoremap="false"/>
+        <SubTree ID="MppiPlanning"
+                 waypoint_lat="{end_point_lat}"
+                 waypoint_lon="{end_point_lon}"
+                 _autoremap="false"/>
+        <SubTree ID="LaneFollower"
+                 phase_id="6"
+                 _autoremap="false"/>
+        <SubTree ID="EndMission"
+                 _autoremap="false"/>
+      </Sequence>
+    </Timeout>
+  </BehaviorTree>
+
+  <!-- Description of Node Models (used by Groot) -->
+  <TreeNodesModel>
+    <Action ID="activate_pointing_action"
+            editable="true">
+      <input_port name="duration_sec"
+                  default="3"
+                  type="double"/>
+    </Action>
+    <Action ID="gpsNav_recovery_action"
+            editable="true"/>
+    <Action ID="gps_nav_action"
+            editable="true">
+      <input_port name="lat"
+                  type="double"/>
+      <input_port name="lon"
+                  type="double"/>
+      <input_port name="tolerance"
+                  type="double"/>
+    </Action>
+    <Action ID="imgDetection_recovery_action"
+            editable="true"/>
+    <Action ID="img_search_action"
+            editable="true">
+      <input_port name="timeout_sec"
+                  default="60"
+                  type="double"/>
+      <output_port name="img_found"
+                   type="bool"/>
+    </Action>
+    <Action ID="lane_follow_action"
+            editable="true">
+      <input_port name="phase_id"
+                  type="std::string"/>
+    </Action>
+    <Action ID="lane_follower_recovery_action"
+            editable="true"/>
+    <Action ID="mppi_planning_action"
+            editable="true">
+      <input_port name="target_lat"
+                  type="double"/>
+      <input_port name="target_lon"
+                  type="double"/>
+    </Action>
+    <Action ID="mppi_recovery_action"
+            editable="true"/>
+    <Condition ID="obstacle_endPoint_detected"
+               editable="true">
+      <input_port name="phase_id"
+                  type="int"/>
+    </Condition>
+    <Action ID="record_current_state_action"
+            editable="true"/>
+    <Action ID="set_autonomous_light"
+            editable="true">
+      <input_port name="mode"
+                  type="std::string"/>
+    </Action>
+    <Action ID="stop_rover"
+            editable="true"/>
+    <Condition ID="waypoint_reached"
+               editable="true">
+      <input_port name="target_lat"
+                  type="double"/>
+      <input_port name="target_lon"
+                  type="double"/>
+      <input_port name="tolerance"
+                  default="1.5"
+                  type="double"/>
+    </Condition>
+  </TreeNodesModel>
+
+</root>

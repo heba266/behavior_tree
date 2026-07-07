@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4" project_name="Project">
+    <include path="bt4.xml"/>
+    <!-- Description of Node Models (used by Groot) -->
+    <TreeNodesModel>
+        <Action ID="activate_pointing_action" editable="true">
+            <input_port name="duration_sec" default="3" type="double"/>
+        </Action>
+        <Action ID="gpsNav_recovery_action" editable="true"/>
+        <Action ID="gps_nav_action" editable="true">
+            <input_port name="lat" type="double"/>
+            <input_port name="lon" type="double"/>
+            <input_port name="tolerance" type="double"/>
+        </Action>
+        <Action ID="imgDetection_recovery_action" editable="true"/>
+        <Action ID="img_search_action" editable="true">
+            <input_port name="timeout_sec" default="60" type="double"/>
+            <output_port name="img_found" type="bool"/>
+        </Action>
+        <Action ID="lane_follow_action" editable="true">
+            <input_port name="phase_id" type="std::string"/>
+        </Action>
+        <Action ID="lane_follower_recovery_action" editable="true"/>
+        <Action ID="mppi_planning_action" editable="true">
+            <input_port name="target_lat" type="double"/>
+            <input_port name="target_lon" type="double"/>
+        </Action>
+        <Action ID="mppi_recovery_action" editable="true"/>
+        <Condition ID="obstacle_endPoint_detected" editable="true">
+            <input_port name="phase_id" type="int"/>
+        </Condition>
+        <Action ID="record_current_state_action" editable="true"/>
+        <Action ID="set_autonomous_light" editable="true">
+            <input_port name="mode" type="std::string"/>
+        </Action>
+        <Action ID="stop_rover" editable="true"/>
+        <Condition ID="waypoint_reached" editable="true">
+            <input_port name="target_lat" type="double"/>
+            <input_port name="target_lon" type="double"/>
+            <input_port name="tolerance" default="1.5" type="double"/>
+        </Condition>
+    </TreeNodesModel>
+</root>
